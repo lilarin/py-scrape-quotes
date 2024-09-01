@@ -94,7 +94,7 @@ async def write_quotes_to_csv(
 
 def main(output_csv_path: str) -> None:
     pages_to_scrap_in_parallel = 10
-    quotes =  asyncio.run(get_quotes(pages_to_scrap_in_parallel))
+    quotes = asyncio.run(get_quotes(pages_to_scrap_in_parallel))
     asyncio.run(write_quotes_to_csv(quotes, output_csv_path))
 
 

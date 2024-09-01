@@ -1,6 +1,6 @@
 import csv
 from dataclasses import dataclass
-from typing import List, AnyStr
+from typing import List, Optional
 from urllib.parse import urljoin
 
 import aiohttp
@@ -19,11 +19,11 @@ class Quote:
 
 async def fetch_page_content(
         session: aiohttp.ClientSession, page_url: str
-) -> AnyStr | None:
+) -> Optional[bytes]:
     try:
         async with session.get(page_url) as response:
             response.raise_for_status()
-            return await response.text()
+            return await response.read()
     except aiohttp.ClientError as error:
         print("Error fetching page", error)
         return None
@@ -38,7 +38,7 @@ async def get_quotes_from_page(
     if not page_content:
         return []
 
-    soup = BeautifulSoup(page_content, "html.parser")
+    soup = BeautifulSoup(page_content.decode("utf-8"), "html.parser")
     quote_elements = soup.select(".quote")
     quotes = []
 
@@ -77,7 +77,7 @@ async def get_quotes(pages_amount: int) -> List[Quote]:
         return quotes
 
 
-def write_quotes_to_csv(
+async def write_quotes_to_csv(
         quotes: List[Quote], output_csv_path: str
 ) -> None:
     with open(
@@ -88,16 +88,15 @@ def write_quotes_to_csv(
 
         for quote in quotes:
             writer.writerow(
-                [quote.text, quote.author, ", ".join(quote.tags)]
+                [quote.text, quote.author, quote.tags]
             )
 
 
-async def main(output_csv_path: str) -> None:
+def main(output_csv_path: str) -> None:
     pages_to_scrap_in_parallel = 10
-    write_quotes_to_csv(
-        await get_quotes(pages_to_scrap_in_parallel), output_csv_path
-    )
+    quotes =  asyncio.run(get_quotes(pages_to_scrap_in_parallel))
+    asyncio.run(write_quotes_to_csv(quotes, output_csv_path))
 
 
 if __name__ == "__main__":
-    asyncio.run(main("quotes.csv"))
+    main("quotes.csv")
